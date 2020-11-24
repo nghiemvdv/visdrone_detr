@@ -154,8 +154,8 @@ def build(image_set, args):
     #     "val": (root / "val2017", root / "annotations" / f'{mode}_val2017.json'),
     # }
     PATHS = {
-        "train": (root / "VisDrone2019-DET-train/images", root / "drive/My Drive/kltn/visdrone_coco" / 'train.json'),
-        "val": (root / "VisDrone2019-DET-val/images", root / "drive/My Drive/kltn/visdrone_coco" / 'val.json'),
+        "train": (root / "VisDrone2019-DET-train/images", root / "drive/My Drive/kltn/visdrone_coco" / 'final_train.json'),
+        "val": (root / "VisDrone2019-DET-val/images", root / "drive/My Drive/kltn/visdrone_coco" / 'final_val.json'),
     }
 
     img_folder, ann_file = PATHS[image_set]

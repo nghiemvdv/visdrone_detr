@@ -317,12 +317,20 @@ def build(args):
     #     # max_obj_id + 1, but the exact value doesn't really matter
     #     num_classes = 250
     # ###
-    if args.dataset_file == 'visdrone_det': ###
-        num_classes = 12
+    ###
+    if args.dataset_file == 'visdrone_det':
+        try:
+            num_classes = args.num_classes
+        except:
+            print('error but assign num_class to 11 anyway')
+            num_classes = 11
     else:
         print('Wrong dataset')
         import sys
         sys.exit()
+    print(f"---> num_classes = {num_classes}")
+    print(f"for dataset:  {args.dataset_file}")
+    ###
     device = torch.device(args.device)
 
     backbone = build_backbone(args)

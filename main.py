@@ -27,10 +27,14 @@ def get_args_parser():
     parser.add_argument('--lr_drop', default=200, type=int)
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
                         help='gradient clipping max norm')
+    parser.add_argument('--save_every', default=100, type=int,
+                        help='save checkpoint.pth every n epoch') ###
 
     # Model parameters
     parser.add_argument('--frozen_weights', type=str, default=None,
                         help="Path to the pretrained model. If set, only the mask head will be trained")
+    parser.add_argument('--num_classes', type=int, default=11,
+                        help="Classes in dataset. Overridden by coco/coco_panoptic datasets") ###
     # * Backbone
     parser.add_argument('--backbone', default='resnet50', type=str,
                         help="Name of the convolutional backbone to use")
@@ -55,6 +59,8 @@ def get_args_parser():
     parser.add_argument('--num_queries', default=1000, type=int,
                         help="Number of query slots")
     parser.add_argument('--pre_norm', action='store_true')
+    parser.add_argument('--del_class', action='store_true') ###
+    parser.add_argument('--del_query', action='store_true') ###
 
     # * Segmentation
     parser.add_argument('--masks', action='store_true',
@@ -164,6 +170,14 @@ def main(args):
         base_ds = get_coco_api_from_dataset(coco_val)
     else:
         base_ds = get_coco_api_from_dataset(dataset_val)
+        ###
+        # print('start debugging')
+        # print(base_ds)
+        # from pprint import pprint
+        # pprint(base_ds.cats)
+        # import sys
+        # sys.exit()
+        ###
 
     if args.frozen_weights is not None:
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
@@ -178,9 +192,13 @@ def main(args):
             checkpoint = torch.load(args.resume, map_location='cpu')
         
         ###
-        del checkpoint['model']['class_embed.weight']
-        del checkpoint['model']['class_embed.bias']
-        del checkpoint['model']['query_embed.weight']
+        if args.del_class:
+            print('remove classification layer weights')
+            del checkpoint['model']['class_embed.weight']
+            del checkpoint['model']['class_embed.bias']
+        if args.del_query:
+            print('remove query weights')
+            del checkpoint['model']['query_embed.weight']
         ###
 
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False) ### strict=False
@@ -207,8 +225,8 @@ def main(args):
         lr_scheduler.step()
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
-            # extra checkpoint before LR drop and every 100 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 100 == 0:
+            # extra checkpoint before LR drop and every 100 epochs ### change to every args.save_every
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.save_every == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
@@ -242,6 +260,15 @@ def main(args):
                     for name in filenames:
                         torch.save(coco_evaluator.coco_eval["bbox"].eval,
                                    output_dir / "eval" / name)
+        ###
+        from IPython.display import clear_output
+        cur_time = time.time() - start_time
+        if cur_time >= 7200:
+            clear_output()
+            print('output cleared after 2h!')
+        else:
+            print('already {}s, clear screen after approx {}s.'.format(cur_time, 7200-cur_time))
+        ###
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

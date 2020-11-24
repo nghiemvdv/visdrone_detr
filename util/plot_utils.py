@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path, PurePath
 
+import sys
+import json
+
 
 def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col=0, log_name='log.txt'):
     '''
@@ -105,3 +108,23 @@ def plot_precision_recall(files, naming_scheme='iter'):
     axs[1].set_title('Scores / Recall')
     axs[1].legend(names)
     return fig, axs
+
+###
+def merge_logs(logs, output_dir, log_name='log.txt'):
+    '''
+    assuming logs is sorted in ascending order (resuming training more than once)
+    assuming the log files is named log.txt
+    '''
+    temp = pd.DataFrame()
+    dfs = [pd.read_json(Path(p) / log_name, lines=True) for p in logs]
+    for df in dfs:
+        temp = temp.append(df)
+    temp.reset_index(drop=True, inplace=True)
+    # print(temp.info())
+    temp = temp.to_dict(orient='records')
+    output_dir = Path(output_dir)
+    with (output_dir / log_name).open('w') as f:
+        for t in temp:
+            f.write(json.dumps(t) + "\n")
+    return output_dir
+###
